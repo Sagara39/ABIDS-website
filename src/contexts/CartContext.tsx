@@ -4,9 +4,9 @@ import type { CartItem, MenuItem, Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirestore } from '@/firebase';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useAuth, useFirestore, useUser } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -26,6 +26,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
     try {
@@ -37,6 +39,12 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Failed to parse cart from localStorage', error);
     }
   }, []);
+
+  useEffect(() => {
+    if (auth && !user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth, user, isUserLoading]);
 
   useEffect(() => {
     try {
@@ -80,19 +88,29 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCartItems([]);
   };
 
-  const checkout = () => {
+  const checkout = async () => {
     if (!firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not connect to the database.',
+        description: 'Firestore is not initialized.',
       });
       return;
     }
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Not signed in',
+        description: 'You must be signed in to place an order. Trying to sign you in anonymously.',
+      });
+      if (auth) initiateAnonymousSignIn(auth);
+      return;
+    }
 
-    const order: Omit<Order, 'id'> = {
+    const orderData: Omit<Order, 'id'> = {
       orderDate: serverTimestamp(),
       totalAmount: total,
+      itemCount: itemCount,
       orderItems: cartItems.map(item => ({
         menuItemId: item.id,
         quantity: item.quantity,
@@ -100,15 +118,24 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       })),
     };
 
-    const ordersCollection = collection(firestore, 'orders');
-    addDocumentNonBlocking(ordersCollection, order);
-    
-    toast({
-      title: 'Order Placed!',
-      description: 'Your order has been received and is being prepared!',
-    });
-    clearCart();
-    router.push('/');
+    try {
+      const ordersCollection = collection(firestore, 'orders');
+      await addDoc(ordersCollection, orderData);
+      
+      toast({
+        title: 'Order Placed!',
+        description: 'Your order has been received and is being prepared!',
+      });
+      clearCart();
+      router.push('/');
+    } catch (e: any) {
+      console.error("Firestore write failed:", e);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: e.message || "Could not save the order.",
+      });
+    }
   };
 
   const total = cartItems.reduce(
