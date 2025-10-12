@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { signInAnonymously } from 'firebase/auth';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -90,36 +91,32 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const saveOrderAndProceedToPayment = async () => {
-    if (!firestore) {
+    if (!firestore || !auth) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Firestore is not initialized.',
+        description: 'Firebase is not initialized.',
       });
       return;
     }
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Not signed in',
-        description: 'You must be signed in to place an order. Trying to sign you in anonymously.',
-      });
-      if (auth) initiateAnonymousSignIn(auth);
-      return;
-    }
-
-    const orderData: Omit<Order, 'id'> = {
-      orderDate: serverTimestamp(),
-      totalAmount: total,
-      itemCount: itemCount,
-      orderItems: cartItems.map(item => ({
-        menuItemId: item.id,
-        quantity: item.quantity,
-        price: item.price,
-      })),
-    };
-
+    
     try {
+      // Ensure user is signed in, even anonymously.
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
+
+      const orderData: Omit<Order, 'id'> = {
+        orderDate: serverTimestamp(),
+        totalAmount: total,
+        itemCount: itemCount,
+        orderItems: cartItems.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      };
+
       const ordersCollection = collection(firestore, 'orders');
       await addDoc(ordersCollection, orderData);
       
