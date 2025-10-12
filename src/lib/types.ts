@@ -15,6 +15,7 @@ export type Order = {
   id?: string;
   orderDate: any;
   totalAmount: number;
+  itemCount: number;
   orderItems: {
     menuItemId: string;
     quantity: number;

@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function CheckoutPage() {
-  const { cartItems, total, itemCount, checkout } = useCart();
+  const { cartItems, total, itemCount, confirmPayment } = useCart();
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function CheckoutPage() {
             <h3 className="text-lg font-semibold mb-3 text-foreground">Order Summary</h3>
             <div className="max-h-48 overflow-y-auto rounded-lg border bg-background/50 p-2 space-y-2">
               {cartItems.map(item => {
-                const localImage = PlaceHolderImages.find(img => img.name.toLowerCase() === item.name.toLowerCase());
+                const localImage = PlaceHolderImages.find(img => img.id === item.id);
                 const imageUrl = localImage?.imageUrl || '/placeholder.png';
                 const imageHint = localImage?.imageHint || 'placeholder';
                 return (
@@ -103,7 +103,7 @@ export default function CheckoutPage() {
                 Cancel
             </Button>
             <Button
-                onClick={checkout}
+                onClick={confirmPayment}
                 className="w-full sm:flex-grow h-12 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg transition-shadow"
             >
                 Simulate RFID Payment

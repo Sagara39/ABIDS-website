@@ -16,7 +16,8 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
-  checkout: () => void;
+  saveOrderAndProceedToPayment: () => void;
+  confirmPayment: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -88,7 +89,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCartItems([]);
   };
 
-  const checkout = async () => {
+  const saveOrderAndProceedToPayment = async () => {
     if (!firestore) {
       toast({
         variant: 'destructive',
@@ -123,11 +124,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       await addDoc(ordersCollection, orderData);
       
       toast({
-        title: 'Order Placed!',
-        description: 'Your order has been received and is being prepared!',
+        title: 'Order Saved!',
+        description: 'Proceed to payment.',
       });
-      clearCart();
-      router.push('/');
+      router.push('/checkout');
     } catch (e: any) {
       console.error("Firestore write failed:", e);
       toast({
@@ -137,6 +137,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
   };
+
+  const confirmPayment = () => {
+     toast({
+      title: 'Payment Successful!',
+      description: 'Your order is being prepared!',
+    });
+    clearCart();
+    router.push('/');
+  }
 
   const total = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -155,7 +164,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         clearCart,
         total,
         itemCount,
-        checkout,
+        saveOrderAndProceedToPayment,
+        confirmPayment,
       }}
     >
       {children}
