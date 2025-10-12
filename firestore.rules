@@ -2,58 +2,68 @@
  * @fileoverview Firestore Security Rules for the college canteen ordering system.
  *
  * Core Philosophy:
- * This ruleset prioritizes simplicity and security for a canteen ordering system.
- * It leverages structural segregation for public (inventory) and private (orders) data.
- * All write operations are explicitly secured; there are no `if true;` write rules.
+ * This ruleset prioritizes simplicity and ease of iteration during prototyping.
+ * It provides public read access to the `inventory` collection, while all other collections are open to any authenticated user.
+ * This is intended to allow rapid development and testing of the application logic.
  *
  * Data Structure:
- * - /inventory/{itemId}: Stores menu items, publicly readable.
- * - /orders/{orderId}: Stores customer orders; anyone can create an order.
- * - /orderItems/{orderItemId}: Stores individual items within an order; anyone can create an orderItem.
+ * The Firestore database consists of three top-level collections:
+ * - `/inventory/{itemId}`: Stores information about menu items. Intended for public consumption.
+ * - `/orders/{orderId}`: Stores customer orders. Accessible to all authenticated users.
+ * - `/orderItems/{orderItemId}`: Stores individual items within an order. Accessible to all authenticated users.
  *
  * Key Security Decisions:
- * - Inventory is publicly readable, as it's intended for all users to view the menu.
- * - Listing of orders and orderItems is allowed for all users.
+ * - Public Read for Inventory: The `inventory` collection is publicly readable, assuming the data is non-sensitive.
+ * - Open Access for Authenticated Users: `orders` and `orderItems` collections are accessible to any authenticated user for all operations (create, read, update, delete).
+ * - No User Listing: Listing users is not supported, and should be handled by backend services.
  *
+ * Denormalization for Authorization:
+ *  - Not used in this ruleset due to the open nature of the data access, but could be used to secure write operations in production environment.
+ *
+ * Structural Segregation:
+ *  - The `inventory` collection is separate from user-specific data like `orders`, simplifying read access rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read the canteen menu items. Writes are not allowed
+     * @description Grants public read access to the inventory collection. Allows any authenticated user to create, update, and delete menu items.
      * @path /inventory/{itemId}
      * @allow (get, list)
-     * @deny (create, update, delete)
-     * @principle Public read access for menu items, no write permissions.
+     * @allow (create, update, delete) User with any valid auth token.
+     * @principle Allows public read access to menu items while allowing any authenticated user to manage the content.
      */
     match /inventory/{itemId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Allows anyone to create an order
+     * @description Allows any authenticated user to create, read, update, and delete orders.
      * @path /orders/{orderId}
-     * @allow (create)
-     * @deny (get, list, update, delete)
-     * @principle Public can create orders, no get, list, update, delete permissions.
+     * @allow (create, update, delete, get, list) User with any valid auth token.
+     * @principle Allows any authenticated user to manage their orders.
      */
     match /orders/{orderId} {
-      allow create: if true;
-      allow get, list, update, delete: if false;
+      allow read, write: if isSignedIn();
     }
 
     /**
-     * @description Allows anyone to create orderItems
+     * @description Allows any authenticated user to create, read, update, and delete order items.
      * @path /orderItems/{orderItemId}
-     * @allow (create)
-     * @deny (get, list, update, delete)
-     * @principle Public can create orderItems, no get, list, update, delete permissions.
+     * @allow (create, update, delete, get, list) User with any valid auth token.
+     * @principle Allows any authenticated user to manage order items.
      */
     match /orderItems/{orderItemId} {
-      allow create: if true;
-      allow get, list, update, delete: if false;
+      allow read, write: if isSignedIn();
+    }
+
+    /**
+     * @description Defines a function to check if a user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
     }
   }
 }
