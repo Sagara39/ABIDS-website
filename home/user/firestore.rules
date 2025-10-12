@@ -1,0 +1,52 @@
+/**
+ * @description This ruleset defines security policies for a college canteen ordering system.
+ *   It allows public read access to menu items and open access to create orders. Other operations are disallowed.
+ * @dataStructure
+ *   /inventory/{itemId}: Stores menu items with public read access.
+ *   /orders/{orderId}: Stores orders with open write access (no authentication required).
+ *   /orderItems/{orderItemId}: Stores individual items of an order with no access for all.
+ * @keySecurityDecisions
+ *   - Menu items (inventory) are publicly readable.
+ *   - Order creation is open to all users (including unauthenticated users).
+ *   - Other write operations (update, delete) are disallowed for all collections.
+ *   - No user listing is allowed to protect user privacy.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows anyone to read menu items in the inventory. Writes are disallowed.
+     * @path /inventory/{itemId}
+     * @allow (get, list) Any user can view the inventory.
+     * @deny (create, update, delete) No one can create, update, or delete inventory items through the client.
+     * @principle Allows public read access for menu items; restricts write access to prevent unauthorized modifications.
+     */
+    match /inventory/{itemId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to create orders. Reads, updates, and deletes are disallowed.
+     * @path /orders/{orderId}
+     * @allow (create) Any user, even unauthenticated, can create a new order.
+     * @deny (get, list, update, delete) No one can read, list, update, or delete orders.
+     * @principle Allows public order creation; restricts all other access to prevent unauthorized modifications and data leaks.
+     */
+    match /orders/{orderId} {
+      allow create: if true;
+      allow get, list, update, delete: if false;
+    }
+
+    /**
+     * @description Disallows all operations on order items.
+     * @path /orderItems/{orderItemId}
+     * @allow None.
+     * @deny Any operation.
+     */
+    match /orderItems/{orderItemId} {
+      allow get, list, create, update, delete: if false;
+    }
+  }
+}

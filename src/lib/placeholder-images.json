@@ -11,35 +11,35 @@
       "id": "2",
       "name": "Fish bun",
       "description": "A savory bun with a fish filling.",
-      "imageUrl": "/fish-bun.jpg",
+      "imageUrl": "/fish bun.jpg",
       "imageHint": "fish bun"
     },
     {
       "id": "3",
       "name": "Viana bun",
       "description": "A delicious and popular Viana sausage bun.",
-      "imageUrl": "/viana-bun.jpg",
+      "imageUrl": "/viana bun.jpg",
       "imageHint": "sausage bun"
     },
     {
       "id": "4",
       "name": "Tea bun",
       "description": "A slightly sweet bun, perfect with tea.",
-      "imageUrl": "/tea-bun.jpg",
+      "imageUrl": "/tea bun.jpeg",
       "imageHint": "tea bun"
     },
     {
       "id": "5",
       "name": "Elawalu rotti",
       "description": "A vegetable-filled flatbread, a local favorite.",
-      "imageUrl": "/elawalu-rotti.jpg",
+      "imageUrl": "/elawalu rotti.jpg",
       "imageHint": "vegetable rotti"
     },
     {
       "id": "6",
       "name": "Sausage bun",
       "description": "A classic sausage bun.",
-      "imageUrl": "/sausage-bun.jpg",
+      "imageUrl": "/sausage bun.png",
       "imageHint": "sausage bun"
     },
     {
