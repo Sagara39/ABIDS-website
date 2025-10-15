@@ -4,6 +4,8 @@ import { CartProvider } from '@/contexts/CartContext';
 import { Toaster } from '@/components/ui/toaster';
 import GlobalHeader from '@/components/GlobalHeader';
 import './globals.css';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'ABIDS',
@@ -35,6 +37,13 @@ export default function RootLayout({
             <GlobalHeader />
             <div className="pt-16">{children}</div>
             <Toaster />
+            <div className="fixed bottom-4 right-4 z-50">
+              <Link href="/balance">
+                <Button size="lg" className="h-14 text-lg shadow-2xl">
+                  Check Balance
+                </Button>
+              </Link>
+            </div>
           </CartProvider>
         </FirebaseClientProvider>
       </body>
