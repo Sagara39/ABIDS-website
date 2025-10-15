@@ -39,7 +39,7 @@ export default function RootLayout({
             <Toaster />
             <div className="fixed bottom-4 right-4 z-50">
               <Link href="/balance">
-                <Button size="lg" className="h-14 text-lg shadow-2xl">
+                <Button size="lg" className="h-14 text-lg shadow-2xl w-48">
                   Check Balance
                 </Button>
               </Link>
