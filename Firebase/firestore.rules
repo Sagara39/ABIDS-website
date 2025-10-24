@@ -1,0 +1,80 @@
+/**
+ * @fileoverview Firestore Security Rules for the college canteen ordering system.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes simplicity and security. It uses public read access for menu items and authenticated-user-only write access for orders and order items.
+ *
+ * Data Structure:
+ * - /menuItems/{menuItemId}: Publicly accessible menu items.
+ * - /orders/{orderId}: Orders placed by customers; writeable by any authenticated user.
+ * - /orderItems/{orderItemId}: Items within an order; writeable by any authenticated user.
+ *
+ * Key Security Decisions:
+ * - Menu items are publicly readable to all users, including unauthenticated users.
+ * - Orders and OrderItems can be created by any authenticated user (no ownership checks).
+ * - Listing of Orders and OrderItems is allowed for any authenticated user.
+ * - No data shape validation is performed in this prototype to allow for rapid iteration.
+ *
+ * Denormalization for Authorization:
+ *  - (Not applicable in this simplified model) In a more complex scenario, consider denormalizing user-specific data (e.g., userId on the order) to avoid complex queries in security rules.
+ *
+ * Structural Segregation:
+ * - Menu items are stored in a separate top-level collection from orders to simplify access control.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows public read access to menu items.
+     * @path /menuItems/{menuItemId}
+     * @allow (get, list) Any user can read menu items.
+     * @deny (create, update, delete) No one can create, update, or delete menu items through the client.
+     * @principle Allows public read access for all menu items.
+     */
+    match /menuItems/{menuItemId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Allows authenticated users to create, read, update, and delete orders.
+     * @path /orders/{orderId}
+     * @allow (create, update, delete) Any authenticated user can create, update, or delete orders.
+     * @allow (get, list) Any authenticated user can get or list orders.
+     * @deny (create, update, delete) Requests without authentication.
+     * @principle Allows any authenticated user to manage orders.
+     */
+    match /orders/{orderId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Allows authenticated users to create, read, update, and delete order items.
+     * @path /orderItems/{orderItemId}
+     * @allow (create, update, delete) Any authenticated user can create, update, or delete order items.
+     * @allow (get, list) Any authenticated user can get or list order items.
+     * @deny (create, update, delete) Requests without authentication.
+     * @principle Allows any authenticated user to manage order items.
+     */
+    match /orderItems/{orderItemId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    // Helper function to check if the user is signed in.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}
