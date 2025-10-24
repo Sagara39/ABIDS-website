@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Wifi, Loader2, CheckCircle, XCircle, User as UserIcon } from 'lucide-react';
@@ -30,20 +30,23 @@ export default function CheckoutPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [tagId, setTagId] = useState<string | null>(null);
 
-  // Hook 1: Listen to the status document for card taps
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
   const { data: statusData } = useDoc<StatusData>(statusDocRef);
   
-  // Hook 2: Fetch user data when a tagId is detected
   const userDocRef = useMemoFirebase(
     () => (firestore && tagId ? doc(firestore, 'users', tagId) : null),
     [firestore, tagId]
   );
   const { data: userData, isLoading: isUserLoading } = useDoc<UserData>(userDocRef);
 
+  const clearStatusDoc = () => {
+    if (firestore && statusDocRef) {
+      setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
+    }
+  }
 
   useEffect(() => {
     if (itemCount === 0 && status !== 'success') {
@@ -52,20 +55,18 @@ export default function CheckoutPage() {
   }, [itemCount, status, router]);
 
   useEffect(() => {
-    // When a new card is tapped and we are waiting for a tap
-    if (status === 'pending_tap' && statusData?.tagId) {
+    if (status === 'pending_tap' && statusData?.tagId && statusData.tagId !== tagId) {
       setTagId(statusData.tagId);
       setStatus('card_detected');
     }
-  }, [statusData, status]);
+  }, [statusData, status, tagId]);
 
   useEffect(() => {
     if (status === 'success') {
       const timer = setTimeout(() => {
         router.push('/');
-      }, 3000); // 3-second delay
-
-      return () => clearTimeout(timer); // Cleanup the timer if the component unmounts
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [status, router]);
 
@@ -73,6 +74,7 @@ export default function CheckoutPage() {
     if (!tagId || !userData) {
       setErrorMessage('No valid user card detected. Please tap your card again.');
       setStatus('error');
+      clearStatusDoc();
       return;
     }
     
@@ -85,8 +87,22 @@ export default function CheckoutPage() {
       console.error("Payment failed: ", error);
       setErrorMessage(error.message || "An unexpected error occurred.");
       setStatus('error');
+    } finally {
+      clearStatusDoc();
     }
   };
+  
+  const handleCancel = () => {
+    clearStatusDoc();
+    router.push('/');
+  }
+  
+  const handleRetry = () => {
+    setTagId(null);
+    setStatus('pending_tap');
+    setErrorMessage('');
+    clearStatusDoc();
+  }
 
   const renderContent = () => {
     switch (status) {
@@ -172,7 +188,7 @@ export default function CheckoutPage() {
         case 'card_detected':
             return (
                 <>
-                    <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                    <Button onClick={handleCancel} variant="outline" className="w-full text-lg h-12">
                         Cancel
                     </Button>
                     <Button onClick={handleConfirmPayment} className="w-full text-lg h-12" disabled={isUserLoading || !userData}>
@@ -189,10 +205,10 @@ export default function CheckoutPage() {
         case 'error':
              return (
                  <>
-                    <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                    <Button onClick={handleCancel} variant="outline" className="w-full text-lg h-12">
                         Cancel
                     </Button>
-                    <Button onClick={() => { setStatus('pending_tap'); setTagId(null); }} className="w-full text-lg h-12">
+                    <Button onClick={handleRetry} className="w-full text-lg h-12">
                         Try Again
                     </Button>
                 </>
@@ -201,7 +217,7 @@ export default function CheckoutPage() {
         case 'processing':
         default:
              return (
-                 <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                 <Button onClick={handleCancel} variant="outline" className="w-full text-lg h-12">
                     Cancel
                 </Button>
             );
@@ -244,3 +260,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    

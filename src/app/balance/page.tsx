@@ -36,6 +36,12 @@ export default function BalancePage() {
     [firestore, tagId]
   );
   const { data: userData, isLoading: isUserLoading } = useDoc<UserData>(userDocRef);
+  
+  const clearStatusDoc = () => {
+      if (firestore && statusDocRef) {
+        setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
+      }
+  }
 
   useEffect(() => {
     if (statusData && statusData.tagId) {
@@ -59,23 +65,18 @@ export default function BalancePage() {
 
     if (userData) {
       setView('balance');
-      // Balance is shown, so we can clear the status for the next user.
-      if (firestore && statusDocRef) {
-        setDoc(statusDocRef, { tagId: null }, { merge: true });
-      }
+      clearStatusDoc();
     } else {
       setView('notFound');
-      // Also clear status if card is not found.
-       if (firestore && statusDocRef) {
-        setDoc(statusDocRef, { tagId: null }, { merge: true });
-      }
+      clearStatusDoc();
     }
-  }, [tagId, userData, isUserLoading, firestore, statusDocRef]);
+  }, [tagId, userData, isUserLoading]);
 
 
   const handleBackToMenu = () => {
     setTagId(null);
     setView('prompt');
+    clearStatusDoc();
     router.push('/');
   }
 
@@ -164,3 +165,5 @@ export default function BalancePage() {
     </div>
   );
 }
+
+    

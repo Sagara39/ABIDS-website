@@ -44,6 +44,12 @@ export default function RegisterPage() {
     [firestore]
   );
   const { data: statusData } = useDoc<{ message: string; tagId: string }>(statusDocRef);
+  
+  const clearStatusDoc = () => {
+    if (firestore && statusDocRef) {
+        setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
+    }
+  }
 
   useEffect(() => {
     if (isFormSubmitted && !registrationComplete && statusData?.tagId && formData) {
@@ -58,8 +64,8 @@ export default function RegisterPage() {
               title: 'Card Already Registered',
               description: 'This card is already linked to an account.',
             });
-            await setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
-            setIsFormSubmitted(false); // Allow another attempt
+            clearStatusDoc();
+            setIsFormSubmitted(false);
             return;
           }
 
@@ -97,9 +103,7 @@ export default function RegisterPage() {
   };
 
   const handleFinish = async () => {
-    if (firestore && statusDocRef) {
-        await setDoc(statusDocRef, { message: '', tagId: null }, { merge: true });
-    }
+    clearStatusDoc();
     router.push('/');
   }
 
@@ -260,3 +264,5 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+    
