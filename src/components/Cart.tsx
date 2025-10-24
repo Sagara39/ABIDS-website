@@ -16,7 +16,14 @@ import { ShoppingCart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Cart() {
-  const { cartItems, total, clearCart, itemCount, checkout } = useCart();
+  const { cartItems, total, clearCart, itemCount } = useCart();
+  const router = useRouter();
+
+  const handleCheckout = () => {
+    if (itemCount > 0) {
+      router.push('/checkout');
+    }
+  };
 
   return (
     <Card className="shadow-lg">
@@ -60,8 +67,9 @@ export default function Cart() {
             <span>Rs.{total.toFixed(2)}</span>
           </div>
           <Button
-            onClick={checkout}
+            onClick={handleCheckout}
             className="w-full h-12 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/90"
+            disabled={itemCount === 0}
           >
             Checkout ({itemCount} {itemCount > 1 ? 'items' : 'item'})
           </Button>

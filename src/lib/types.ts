@@ -13,11 +13,13 @@ export type CartItem = MenuItem & {
 
 export type Order = {
   id?: string;
+  userId: string;
   orderDate: any;
   totalAmount: number;
   itemCount: number;
   orderItems: {
     menuItemId: string;
+    name: string;
     quantity: number;
     price: number;
   }[];

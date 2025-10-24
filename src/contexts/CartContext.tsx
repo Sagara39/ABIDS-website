@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { signInAnonymously } from 'firebase/auth';
 
@@ -17,7 +17,7 @@ interface CartContextType {
   clearCart: () => void;
   total: number;
   itemCount: number;
-  checkout: () => void;
+  placeOrder: (userId: string) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -89,53 +89,51 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     setCartItems([]);
   };
 
-  const checkout = async () => {
-    if (!firestore || !auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Firebase is not initialized.',
-      });
-      return;
+  const placeOrder = async (userId: string) => {
+    if (!firestore) {
+      throw new Error("Firestore is not initialized.");
     }
-    
-    try {
-      // Ensure user is signed in, even anonymously.
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
-      }
+    if (cartItems.length === 0) {
+      throw new Error("Your cart is empty.");
+    }
 
-      const orderData: Omit<Order, 'id'> = {
+    const userRef = doc(firestore, 'users', userId);
+    const orderData: Omit<Order, 'id'> = {
+        userId: userId,
         orderDate: serverTimestamp(),
         totalAmount: total,
         itemCount: itemCount,
         orderItems: cartItems.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price,
+            menuItemId: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
         })),
         status: 'completed'
-      };
+    };
 
-      const ordersCollection = collection(firestore, 'orders');
-      await addDoc(ordersCollection, orderData);
-      
-      toast({
-        title: 'Order Placed!',
-        description: 'Your order has been received!',
-      });
-      clearCart();
-      router.push('/');
+    await runTransaction(firestore, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
 
-    } catch (e: any) {
-      console.error("Firestore write failed:", e);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: e.message || "Could not save the order.",
-      });
-    }
+        if (!userDoc.exists()) {
+            throw new Error("Card not registered. Please register your card.");
+        }
+
+        const currentBalance = userDoc.data().credit_balance || 0;
+        if (currentBalance < total) {
+            throw new Error(`Insufficient funds. Your balance is Rs. ${currentBalance.toFixed(2)}`);
+        }
+
+        const newBalance = currentBalance - total;
+        transaction.update(userRef, { credit_balance: newBalance });
+
+        const newOrderRef = doc(collection(firestore, 'orders'));
+        transaction.set(newOrderRef, orderData);
+    });
+
+    clearCart();
   };
+
 
   const total = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -154,7 +152,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         clearCart,
         total,
         itemCount,
-        checkout,
+        placeOrder,
       }}
     >
       {children}
