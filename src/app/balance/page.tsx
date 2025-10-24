@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function BalancePage() {
     const router = useRouter();
@@ -39,12 +40,13 @@ export default function BalancePage() {
             >
                 Back to Menu
             </Button>
-            <Button
-                onClick={() => { /* Add registration logic here */ }}
-                className="w-full sm:w-auto text-lg h-12"
-            >
-                Register Now
-            </Button>
+            <Link href="/register" passHref>
+                <Button
+                    className="w-full sm:w-auto text-lg h-12"
+                >
+                    Register Now
+                </Button>
+            </Link>
         </CardFooter>
       </Card>
     </div>

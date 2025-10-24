@@ -1,5 +1,22 @@
 {
   "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user profile.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's phone number."
+        }
+      },
+      "required": ["name", "phoneNumber"]
+    },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
@@ -53,6 +70,10 @@
         "totalAmount": {
           "type": "number",
           "description": "Total amount of the order."
+        },
+        "itemCount": {
+            "type": "number",
+            "description": "The number of items in the order."
         },
         "orderItems": {
           "type": "array",
@@ -113,6 +134,16 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection of user profiles."
+        }
+      },
       {
         "path": "/inventory/{itemId}",
         "definition": {
