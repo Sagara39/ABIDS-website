@@ -11,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
-import { Wifi, CheckCircle, XCircle } from 'lucide-react';
+import { Wifi, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -22,7 +22,7 @@ const formSchema = z.object({
 
 type RegistrationFormValues = z.infer<typeof formSchema>;
 
-type RegistrationStatus = 'form' | 'tapping' | 'error' | 'success';
+type RegistrationStatus = 'form' | 'tapping' | 'submitting' | 'error' | 'success';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function RegisterPage() {
   const firestore = useFirestore();
   const [activeField, setActiveField] = useState<'name' | 'phoneNumber' | null>('name');
   const [status, setStatus] = useState<RegistrationStatus>('form');
-  const [formData, setFormData] = useState<RegistrationFormValues | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(formSchema),
@@ -44,10 +44,9 @@ export default function RegisterPage() {
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
-  const { data: statusData } = useDoc<{ message: string; tagId: string }>(statusDocRef);
   
   const clearStatusDoc = () => {
-    if (firestore && statusDocRef) {
+    if (statusDocRef) {
         setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
     }
   }
@@ -57,54 +56,58 @@ export default function RegisterPage() {
     clearStatusDoc();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const waitForCardTap = (): Promise<string> => {
+    return new Promise((resolve) => {
+        if (!statusDocRef) return;
+        const unsubscribe = onSnapshot(statusDocRef, (doc) => {
+            const tagId = doc.data()?.tagId;
+            if (tagId) {
+                unsubscribe();
+                resolve(tagId);
+            }
+        });
+    });
+  }
 
-  useEffect(() => {
-    if (status === 'tapping' && statusData?.tagId && formData) {
-      const { tagId } = statusData;
+  const onSubmit = async (values: RegistrationFormValues) => {
+    if (!firestore) return;
+    setStatus('tapping');
+    toast({ title: 'Please tap your card', description: 'Hold your card near the reader to link your account.'});
+    
+    try {
+      const tagId = await waitForCardTap();
+      setStatus('submitting');
+      
+      const userCheckRef = doc(firestore, 'users', tagId);
+      const userDoc = await getDoc(userCheckRef);
 
-      const registerUser = async () => {
-        if (!firestore) return;
-        try {
-          const userCheckRef = doc(firestore, 'users', tagId);
-          const userDoc = await getDoc(userCheckRef);
+      if (userDoc.exists()) {
+        setErrorMessage('This card is already linked to an account. Please use a different card.');
+        setStatus('error');
+        clearStatusDoc();
+        return;
+      }
 
-          if (userDoc.exists()) {
-            setStatus('error');
-            clearStatusDoc();
-            return;
-          }
+      await setDoc(userCheckRef, { 
+          ...values,
+          credit_balance: 0,
+          lastTransaction: serverTimestamp()
+      });
+      
+      await setDoc(statusDocRef, { message: 'registered' }, { merge: true });
+      
+      toast({ title: 'Success!', description: 'Your card has been registered.' });
+      setStatus('success');
 
-          const userRef = doc(firestore, 'users', tagId);
-          await setDoc(userRef, { 
-              ...formData,
-              credit_balance: 0,
-              lastTransaction: serverTimestamp()
-           });
-          
-          await setDoc(statusDocRef, { message: 'registered' }, { merge: true });
-          
-          toast({ title: 'Success!', description: 'Your card has been registered.' });
-          setStatus('success');
-        } catch (error: any) {
-          console.error('Failed to create user:', error);
-          toast({
+    } catch (error: any) {
+        console.error('Failed to create user:', error);
+        toast({
             variant: 'destructive',
             title: 'Registration Failed',
-            description: 'Could not save user data.',
-          });
-          setStatus('form');
-        }
-      };
-      
-      registerUser();
+            description: error.message || 'Could not save user data.',
+        });
+        setStatus('form');
     }
-  }, [statusData, status, formData, firestore, toast, statusDocRef]);
-
-
-  const onSubmit = (values: RegistrationFormValues) => {
-    setFormData(values);
-    setStatus('tapping');
-    toast({ title: 'Form submitted', description: 'Please tap your RFID card to continue.'})
   };
 
   const handleFinish = async () => {
@@ -193,6 +196,18 @@ export default function RegisterPage() {
                 </CardFooter>
               </>
             )
+      case 'submitting':
+            return (
+                <CardContent>
+                    <div className="text-center py-6">
+                        <div className="flex justify-center mb-4">
+                        <Loader2 className="w-20 h-20 animate-spin text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-primary">Registering Card...</h3>
+                        <p className="text-muted-foreground mt-1">Please wait.</p>
+                    </div>
+                </CardContent>
+            );
       case 'error':
         return (
           <>
@@ -204,8 +219,8 @@ export default function RegisterPage() {
                     <div className="flex justify-center mb-4">
                         <XCircle className="w-32 h-32" />
                     </div>
-                    <h3 className="text-2xl font-bold">Card Already Registered</h3>
-                    <p className="text-muted-foreground mt-1">This card is already linked to an account. Please use a different card.</p>
+                    <h3 className="text-2xl font-bold">{errorMessage}</h3>
+                    <p className="text-muted-foreground mt-1">Please use a different card or contact support.</p>
                 </div>
             </CardContent>
             <CardFooter className="flex justify-center">
