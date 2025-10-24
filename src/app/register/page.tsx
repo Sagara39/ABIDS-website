@@ -52,6 +52,12 @@ export default function RegisterPage() {
   }
 
   useEffect(() => {
+    // Clear status on initial load to prevent using a stale tagId
+    clearStatusDoc();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+
+  useEffect(() => {
     if (isFormSubmitted && !registrationComplete && statusData?.tagId && formData) {
       const { message, tagId } = statusData;
 
@@ -264,5 +270,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-    
