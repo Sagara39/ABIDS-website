@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface StatusData {
   tagId: string;
@@ -130,7 +130,7 @@ export default function BalancePage() {
   const handleBackToMenu = async () => {
     // Clear status so the next visit to this page shows the prompt again
     if (firestore && statusDocRef) {
-      await setDoc(statusDocRef, { tagId: '' }, { merge: true });
+      await setDoc(statusDocRef, { tagId: null }, { merge: true });
     }
     setTagId(null);
     setView('prompt');
