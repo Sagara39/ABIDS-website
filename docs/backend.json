@@ -15,7 +15,10 @@
           "description": "The user's phone number."
         }
       },
-      "required": ["name", "phoneNumber"]
+      "required": [
+        "name",
+        "phoneNumber"
+      ]
     },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -72,8 +75,8 @@
           "description": "Total amount of the order."
         },
         "itemCount": {
-            "type": "number",
-            "description": "The number of items in the order."
+          "type": "number",
+          "description": "The number of items in the order."
         },
         "orderItems": {
           "type": "array",
@@ -124,6 +127,26 @@
         "quantity",
         "subtotal"
       ]
+    },
+    "Status": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Status",
+      "type": "object",
+      "description": "Represents the real-time status from a hardware device.",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Status message, e.g., 'registered' or 'unregistered'."
+        },
+        "tagId": {
+          "type": "string",
+          "description": "The RFID tag ID read by the device."
+        }
+      },
+      "required": [
+        "message",
+        "tagId"
+      ]
     }
   },
   "auth": {
@@ -151,13 +174,7 @@
           "schema": {
             "$ref": "#/backend/entities/MenuItem"
           },
-          "description": "Collection of inventory items available in the canteen, mapped to the menu.",
-          "params": [
-            {
-              "name": "itemId",
-              "description": "Unique identifier for the inventory item."
-            }
-          ]
+          "description": "Collection of inventory items available in the canteen, mapped to the menu."
         }
       },
       {
@@ -167,13 +184,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Collection of orders placed by customers.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "Unique identifier for the order."
-            }
-          ]
+          "description": "Collection of orders placed by customers."
         }
       },
       {
@@ -183,13 +194,17 @@
           "schema": {
             "$ref": "#/backend/entities/OrderItem"
           },
-          "description": "Collection of order items, each referencing an order and a menu item.",
-          "params": [
-            {
-              "name": "orderItemId",
-              "description": "Unique identifier for the order item."
-            }
-          ]
+          "description": "Collection of order items, each referencing an order and a menu item."
+        }
+      },
+      {
+        "path": "/status/{statusId}",
+        "definition": {
+          "entityName": "Status",
+          "schema": {
+            "$ref": "#/backend/entities/Status"
+          },
+          "description": "Collection for real-time status updates from hardware."
         }
       }
     ],

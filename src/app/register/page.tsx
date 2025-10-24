@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,9 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { setDoc, doc } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { Wifi } from 'lucide-react';
 
@@ -21,16 +20,17 @@ const formSchema = z.object({
   phoneNumber: z.string().regex(/^\d{10}$/, { message: 'Please enter a valid 10-digit phone number.' }),
 });
 
+type RegistrationFormValues = z.infer<typeof formSchema>;
+
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-  const auth = useAuth();
-  const { user } = useUser();
   const [activeField, setActiveField] = useState<'name' | 'phoneNumber' | null>('name');
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+  const [formData, setFormData] = useState<RegistrationFormValues | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
@@ -38,36 +38,52 @@ export default function RegisterPage() {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!firestore || !auth) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.' });
-      return;
-    }
+  const statusDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'status', 'ui') : null),
+    [firestore]
+  );
+  const { data: statusData } = useDoc<{ message: string; tagId: string }>(statusDocRef);
 
-    try {
-      let currentUser = user;
-      if (!currentUser) {
-        const userCredential = await signInAnonymously(auth);
-        currentUser = userCredential.user;
+  useEffect(() => {
+    if (isFormSubmitted && statusData && formData) {
+      const { message, tagId } = statusData;
+
+      if (message === 'unregistered' && tagId) {
+        const registerUser = async () => {
+          if (!firestore) return;
+          try {
+            const userRef = doc(firestore, 'users', tagId);
+            await setDoc(userRef, { ...formData });
+            toast({ title: 'Success!', description: 'Your card has been registered.' });
+            router.push('/');
+          } catch (error: any) {
+            console.error('Failed to create user:', error);
+            toast({
+              variant: 'destructive',
+              title: 'Registration Failed',
+              description: 'Could not save user data.',
+            });
+            setIsFormSubmitted(false); // Allow user to try again
+          }
+        };
+        registerUser();
+      } else if (message === 'registered' && tagId) {
+        toast({
+          variant: 'destructive',
+          title: 'Card Already Registered',
+          description: 'This card is already linked to an account.',
+        });
+        // Reset to allow another attempt or different action
+        setTimeout(() => setIsFormSubmitted(false), 3000); 
       }
-
-      if (!currentUser) {
-        throw new Error('Could not get user.');
-      }
-      
-      const userRef = doc(firestore, 'users', currentUser.uid);
-      await setDoc(userRef, values, { merge: true });
-
-      toast({ title: 'Success', description: 'Your information has been saved.' });
-      setIsFormSubmitted(true);
-    } catch (error: any) {
-      console.error('Registration failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Registration failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
     }
+  }, [statusData, isFormSubmitted, formData, firestore, toast, router]);
+
+
+  const onSubmit = (values: RegistrationFormValues) => {
+    setFormData(values);
+    setIsFormSubmitted(true);
+    toast({ title: 'Form submitted', description: 'Please tap your RFID card to continue.'})
   };
 
   const handleKeyPress = (key: string) => {
@@ -101,7 +117,7 @@ export default function RegisterPage() {
                       <CardDescription>Enter your name and phone number to get started.</CardDescription>
                   </CardHeader>
                   <FormProvider {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                      <form onSubmit={form.handleSubmit(onSubmit)}>
                           <CardContent className="space-y-4">
                               <FormField
                                   control={form.control}
@@ -115,6 +131,7 @@ export default function RegisterPage() {
                                                   {...field}
                                                   onFocus={() => setActiveField('name')}
                                                   className="text-lg p-4"
+                                                  readOnly
                                               />
                                           </FormControl>
                                           <FormMessage />
@@ -133,6 +150,7 @@ export default function RegisterPage() {
                                                   {...field}
                                                   onFocus={() => setActiveField('phoneNumber')}
                                                   className="text-lg p-4"
+                                                  readOnly
                                               />
                                           </FormControl>
                                           <FormMessage />
@@ -150,8 +168,8 @@ export default function RegisterPage() {
               ) : (
                 <>
                   <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Registration Complete</CardTitle>
-                    <CardDescription>Now, link your card to finalize your account.</CardDescription>
+                    <CardTitle className="text-2xl">Link Your Card</CardTitle>
+                    <CardDescription>Your details are saved. Please link your card to finalize.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-6 bg-accent/10 rounded-lg">
@@ -169,9 +187,9 @@ export default function RegisterPage() {
                       <p className="text-muted-foreground mt-1">Hold your card near the reader to link your account.</p>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-center">
-                      <Button onClick={() => router.push('/')} className="text-lg h-12">
-                          Finish
+                   <CardFooter className="flex justify-center">
+                      <Button variant="outline" onClick={() => setIsFormSubmitted(false)}>
+                          Back to Form
                       </Button>
                   </CardFooter>
                 </>
