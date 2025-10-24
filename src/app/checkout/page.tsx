@@ -59,6 +59,16 @@ export default function CheckoutPage() {
     }
   }, [statusData, status]);
 
+  useEffect(() => {
+    if (status === 'success') {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 3000); // 3-second delay
+
+      return () => clearTimeout(timer); // Cleanup the timer if the component unmounts
+    }
+  }, [status, router]);
+
   const handleConfirmPayment = async () => {
     if (!tagId) {
       setErrorMessage('No user card detected.');
@@ -97,7 +107,7 @@ export default function CheckoutPage() {
               <CheckCircle className="w-20 h-20" />
             </div>
             <h3 className="text-2xl font-bold text-green-500">Payment Successful!</h3>
-            <p className="text-muted-foreground mt-1">Your order has been placed.</p>
+            <p className="text-muted-foreground mt-1">Your order has been placed. Redirecting soon...</p>
           </div>
         );
       case 'error':
@@ -128,9 +138,13 @@ export default function CheckoutPage() {
                 <p className="text-muted-foreground">Ready to pay.</p>
               </>
             ) : (
-                 <div className="flex justify-center mb-4 text-destructive">
-                    <XCircle className="w-20 h-20" />
-                </div>
+                 <div className="text-center py-6">
+                    <div className="flex justify-center mb-4 text-destructive">
+                        <XCircle className="w-20 h-20" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-destructive">Card Not Found</h3>
+                    <p className="text-muted-foreground mt-1">This RFID card is not registered.</p>
+                 </div>
             )}
           </div>
         );
@@ -178,7 +192,7 @@ export default function CheckoutPage() {
                     <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
                         Back to Menu
                     </Button>
-                    <Button onClick={() => setStatus('pending_tap')} className="w-full text-lg h-12">
+                    <Button onClick={() => { setStatus('pending_tap'); setTagId(null); }} className="w-full text-lg h-12">
                         Try Again
                     </Button>
                 </>
