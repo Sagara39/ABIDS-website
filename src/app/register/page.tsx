@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { Wifi } from 'lucide-react';
 
@@ -53,7 +53,11 @@ export default function RegisterPage() {
           if (!firestore) return;
           try {
             const userRef = doc(firestore, 'users', tagId);
-            await setDoc(userRef, { ...formData });
+            await setDoc(userRef, { 
+                ...formData,
+                balance: 0, // Initialize balance to 0
+                lastTransaction: serverTimestamp()
+             });
             toast({ title: 'Success!', description: 'Your card has been registered.' });
             router.push('/');
           } catch (error: any) {

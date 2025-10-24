@@ -13,11 +13,21 @@
         "phoneNumber": {
           "type": "string",
           "description": "The user's phone number."
+        },
+        "balance": {
+          "type": "number",
+          "description": "The user's current credit balance."
+        },
+        "lastTransaction": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp of the user's last transaction."
         }
       },
       "required": [
         "name",
-        "phoneNumber"
+        "phoneNumber",
+        "balance"
       ]
     },
     "MenuItem": {
