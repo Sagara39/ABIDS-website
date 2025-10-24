@@ -31,13 +31,19 @@ export default function BalancePage() {
             <p className="text-muted-foreground mt-1">Hold your card near the reader.</p>
           </div>
         </CardContent>
-         <CardFooter className="flex justify-center bg-muted/30 p-6">
+         <CardFooter className="flex flex-col sm:flex-row gap-4 justify-center bg-muted/30 p-6">
             <Button
                 onClick={() => router.push('/')}
                 variant="outline"
                 className="w-full sm:w-auto text-lg h-12"
             >
                 Back to Menu
+            </Button>
+            <Button
+                onClick={() => { /* Add registration logic here */ }}
+                className="w-full sm:w-auto text-lg h-12"
+            >
+                Register Now
             </Button>
         </CardFooter>
       </Card>
