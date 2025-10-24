@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Wifi, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Wifi, Loader2, CheckCircle, XCircle, User as UserIcon } from 'lucide-react';
 import CartItemComponent from '@/components/CartItem';
 import { Separator } from '@/components/ui/separator';
 
-type CheckoutStatus = 'pending_tap' | 'processing' | 'success' | 'error';
+type CheckoutStatus = 'pending_tap' | 'card_detected' | 'processing' | 'success' | 'error';
 
 interface StatusData {
   tagId: string;
@@ -25,75 +25,52 @@ interface UserData {
 export default function CheckoutPage() {
   const router = useRouter();
   const firestore = useFirestore();
-  const { cartItems, total, itemCount, clearCart } = useCart();
+  const { cartItems, total, itemCount, placeOrder } = useCart();
   const [status, setStatus] = useState<CheckoutStatus>('pending_tap');
   const [errorMessage, setErrorMessage] = useState('');
+  const [tagId, setTagId] = useState<string | null>(null);
 
+  // Hook 1: Listen to the status document for card taps
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
   const { data: statusData } = useDoc<StatusData>(statusDocRef);
+  
+  // Hook 2: Fetch user data when a tagId is detected
+  const userDocRef = useMemoFirebase(
+    () => (firestore && tagId ? doc(firestore, 'users', tagId) : null),
+    [firestore, tagId]
+  );
+  const { data: userData, isLoading: isUserLoading } = useDoc<UserData>(userDocRef);
+
 
   useEffect(() => {
-    // This effect triggers the payment process when a card is tapped.
-    if (status === 'pending_tap' && statusData?.tagId && firestore) {
-      handlePayment(statusData.tagId);
-    }
-  }, [statusData, status, firestore]);
-  
-  useEffect(() => {
-    // If the cart is empty, redirect to the home page.
     if (itemCount === 0 && status !== 'success') {
       router.push('/');
     }
   }, [itemCount, status, router]);
 
+  useEffect(() => {
+    // When a new card is tapped and we are waiting for a tap
+    if (status === 'pending_tap' && statusData?.tagId) {
+      setTagId(statusData.tagId);
+      setStatus('card_detected');
+    }
+  }, [statusData, status]);
 
-  const handlePayment = async (tagId: string) => {
-    if (!firestore) return;
+  const handleConfirmPayment = async () => {
+    if (!tagId) {
+      setErrorMessage('No user card detected.');
+      setStatus('error');
+      return;
+    }
     
     setStatus('processing');
 
-    const userRef = doc(firestore, 'users', tagId);
-    const orderData = {
-        userId: tagId,
-        orderDate: serverTimestamp(),
-        totalAmount: total,
-        itemCount: itemCount,
-        orderItems: cartItems.map(item => ({
-            menuItemId: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-        })),
-        status: 'completed',
-    };
-
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const userDoc = await transaction.get(userRef);
-
-        if (!userDoc.exists()) {
-          throw new Error("Card not registered. Please register your card.");
-        }
-
-        const userData = userDoc.data() as UserData;
-        const currentBalance = userData.credit_balance || 0;
-
-        if (currentBalance < total) {
-          throw new Error(`Insufficient funds. Your balance is Rs. ${currentBalance.toFixed(2)}`);
-        }
-
-        const newBalance = currentBalance - total;
-        transaction.update(userRef, { credit_balance: newBalance });
-
-        const newOrderRef = doc(collection(firestore, "orders"));
-        transaction.set(newOrderRef, orderData);
-      });
-
+      await placeOrder(tagId);
       setStatus('success');
-      clearCart();
     } catch (error: any) {
       console.error("Payment failed: ", error);
       setErrorMessage(error.message || "An unexpected error occurred.");
@@ -133,6 +110,30 @@ export default function CheckoutPage() {
             <p className="text-muted-foreground mt-1">{errorMessage}</p>
           </div>
         );
+      case 'card_detected':
+        return (
+          <div className="text-center py-6">
+            {isUserLoading ? (
+              <Loader2 className="w-16 h-16 animate-spin text-primary" />
+            ) : userData ? (
+              <>
+                <div className="flex justify-center mb-4 text-green-500">
+                  <CheckCircle className="w-20 h-20" />
+                </div>
+                <h3 className="text-2xl font-bold">Card Detected</h3>
+                <div className="flex justify-center items-center gap-2 mt-2">
+                    <UserIcon className="w-6 h-6 text-muted-foreground" />
+                    <p className="text-xl font-semibold">{userData.name}</p>
+                </div>
+                <p className="text-muted-foreground">Ready to pay.</p>
+              </>
+            ) : (
+                 <div className="flex justify-center mb-4 text-destructive">
+                    <XCircle className="w-20 h-20" />
+                </div>
+            )}
+          </div>
+        );
       case 'pending_tap':
       default:
         return (
@@ -146,20 +147,48 @@ export default function CheckoutPage() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-green-600">Tap Your RFID Card to Pay</h3>
-            <p className="text-muted-foreground mt-1">Hold your card near the reader to complete your purchase.</p>
+            <p className="text-muted-foreground mt-1">Hold your card near the reader to proceed.</p>
           </div>
         );
     }
   };
   
-  const handleBackToMenu = () => {
-    router.push('/');
+  const renderFooter = () => {
+    switch(status) {
+        case 'card_detected':
+            return (
+                 <Button onClick={handleConfirmPayment} className="w-full text-lg h-12" disabled={isUserLoading || !userData}>
+                    {isUserLoading ? 'Verifying...' : `Confirm Payment for ${userData?.name}`}
+                </Button>
+            );
+        case 'success':
+            return (
+                <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                    Back to Menu
+                </Button>
+            );
+        case 'error':
+             return (
+                 <>
+                    <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                        Back to Menu
+                    </Button>
+                    <Button onClick={() => setStatus('pending_tap')} className="w-full text-lg h-12">
+                        Try Again
+                    </Button>
+                </>
+            );
+        case 'pending_tap':
+        case 'processing':
+        default:
+             return (
+                 <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                    Cancel
+                </Button>
+            );
+    }
   }
 
-  const handleTryAgain = () => {
-    setStatus('pending_tap');
-    setErrorMessage('');
-  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center p-4 bg-muted/40">
@@ -189,22 +218,7 @@ export default function CheckoutPage() {
             {renderContent()}
           </div>
            <div className="flex flex-col sm:flex-row gap-2 justify-center mt-6">
-            {status === 'success' || status === 'error' ? (
-                 <>
-                    <Button onClick={handleBackToMenu} variant="outline" className="w-full text-lg h-12">
-                        Back to Menu
-                    </Button>
-                    {status === 'error' && (
-                         <Button onClick={handleTryAgain} className="w-full text-lg h-12">
-                            Try Again
-                        </Button>
-                    )}
-                </>
-            ) : (
-                 <Button onClick={handleBackToMenu} variant="outline" className="w-full text-lg h-12">
-                    Cancel
-                </Button>
-            )}
+            {renderFooter()}
            </div>
         </div>
       </Card>
