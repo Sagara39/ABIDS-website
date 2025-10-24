@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Wifi, Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -88,8 +88,8 @@ export default function CheckoutPage() {
         const newBalance = currentBalance - total;
         transaction.update(userRef, { credit_balance: newBalance });
 
-        const ordersCollection = doc(collection(firestore, "orders"));
-        transaction.set(ordersCollection, orderData);
+        const newOrderRef = doc(collection(firestore, "orders"));
+        transaction.set(newOrderRef, orderData);
       });
 
       setStatus('success');
