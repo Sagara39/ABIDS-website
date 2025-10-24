@@ -10,56 +10,66 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
 interface StatusData {
-  message: string;
   tagId: string;
-  userName?: string;
-  credit_balance?: number;
+}
+
+interface UserData {
+    name: string;
+    balance: number;
 }
 
 export default function BalancePage() {
   const router = useRouter();
   const firestore = useFirestore();
-  const [view, setView] = useState<'prompt' | 'loading' | 'balance' | 'notFound'>('prompt');
   
+  const [view, setView] = useState<'prompt' | 'loading' | 'balance' | 'notFound'>('prompt');
+  const [tagId, setTagId] = useState<string | null>(null);
+
+  // Hook 1: Listen to the status document
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
-  const { data: statusData, isLoading: isStatusLoading } = useDoc<StatusData>(statusDocRef);
+  const { data: statusData } = useDoc<StatusData>(statusDocRef);
+
+  // Hook 2: Listen to the user document, based on the tagId from status
+  const userDocRef = useMemoFirebase(
+    () => (firestore && tagId ? doc(firestore, 'users', tagId) : null),
+    [firestore, tagId]
+  );
+  const { data: userData, isLoading: isUserLoading } = useDoc<UserData>(userDocRef);
 
   useEffect(() => {
-    // When the component loads, if there's old data, don't show it.
-    // Wait for a new tap. The prompt view handles this.
-    if (view === 'prompt') {
-      if (isStatusLoading) {
+    if (statusData && statusData.tagId) {
+      // A new card has been tapped.
+      // We set the tagId, which will trigger the second hook (userDocRef).
+      if (statusData.tagId !== tagId) {
+        setTagId(statusData.tagId);
         setView('loading');
-      } else if (statusData?.tagId) {
-         if (statusData.message === 'registered' && statusData.userName && typeof statusData.credit_balance === 'number') {
-          setView('balance');
-        } else {
-          setView('notFound');
-        }
       }
+    }
+  }, [statusData, tagId]);
+
+  useEffect(() => {
+    // This effect reacts to changes in the user data fetching.
+    if (!tagId) {
+      setView('prompt');
       return;
     }
     
-    // If view is not 'prompt', then we react to changes.
-    if (isStatusLoading) {
+    if (isUserLoading) {
       setView('loading');
       return;
     }
 
-    if (!statusData || !statusData.tagId) {
-      setView('prompt');
-      return;
-    }
-
-    if (statusData.message === 'registered' && statusData.userName && typeof statusData.credit_balance === 'number') {
+    if (userData) {
+      // User found, show balance
       setView('balance');
     } else {
+      // No user data found for this tagId
       setView('notFound');
     }
-  }, [statusData, isStatusLoading, view]);
+  }, [tagId, userData, isUserLoading]);
 
 
   const renderContent = () => {
@@ -79,12 +89,12 @@ export default function BalancePage() {
             <div className="text-center py-6">
                 <div className="flex justify-center items-center gap-4 mb-2">
                     <UserIcon className="w-8 h-8 text-muted-foreground"/>
-                    <p className="text-2xl font-semibold">{statusData?.userName}</p>
+                    <p className="text-2xl font-semibold">{userData?.name}</p>
                 </div>
                 <div className="flex justify-center items-center gap-4 text-primary mb-4">
                     <Wallet className="w-12 h-12" />
                     <p className="text-6xl font-bold">
-                        Rs. {typeof statusData?.credit_balance === 'number' ? statusData.credit_balance.toFixed(2) : '0.00'}
+                        Rs. {typeof userData?.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}
                     </p>
                 </div>
                  <p className="text-muted-foreground mt-4">Your current account balance.</p>
@@ -116,6 +126,16 @@ export default function BalancePage() {
         );
     }
   };
+  
+  const handleBackToMenu = async () => {
+    // Clear status so the next visit to this page shows the prompt again
+    if (firestore && statusDocRef) {
+      await setDoc(statusDocRef, { tagId: '' }, { merge: true });
+    }
+    setTagId(null);
+    setView('prompt');
+    router.push('/');
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center p-4 bg-muted/40">
@@ -131,7 +151,7 @@ export default function BalancePage() {
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-4 justify-center bg-muted/30 p-6">
           <Button
-            onClick={() => router.push('/')}
+            onClick={handleBackToMenu}
             variant="outline"
             className="w-full sm:w-auto text-lg h-12"
           >

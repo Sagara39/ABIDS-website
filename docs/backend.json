@@ -94,6 +94,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the order."
         }
       },
       "required": [
@@ -151,14 +155,6 @@
         "tagId": {
           "type": "string",
           "description": "The RFID tag ID read by the device."
-        },
-        "userName": {
-          "type": "string",
-          "description": "The name of the user associated with the tag."
-        },
-        "credit_balance": {
-          "type": "number",
-          "description": "The current credit balance of the user."
         }
       },
       "required": [
