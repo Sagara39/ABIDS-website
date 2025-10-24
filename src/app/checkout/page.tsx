@@ -247,7 +247,7 @@ export default function CheckoutPage() {
             </CardContent>
             <CardFooter className="flex-col items-stretch space-y-2 mt-auto pt-6">
                 <Separator/>
-                <div className="flex justify-between font-bold text-xl">
+                <div className="flex justify-between font-bold text-2xl">
                     <span>Total</span>
                     <span>Rs.{total.toFixed(2)}</span>
                 </div>

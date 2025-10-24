@@ -62,7 +62,7 @@ export default function Cart() {
       {cartItems.length > 0 && (
         <CardFooter className="flex flex-col gap-4 p-4 border-t">
           <Separator />
-          <div className="w-full flex justify-between items-center font-bold text-lg">
+          <div className="w-full flex justify-between items-center font-bold text-xl">
             <span>Total</span>
             <span>Rs.{total.toFixed(2)}</span>
           </div>

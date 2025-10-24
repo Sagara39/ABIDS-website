@@ -101,7 +101,7 @@ export default function BalancePage() {
                 </div>
                 <div className="flex justify-center items-center gap-4 text-primary mb-4">
                     <Wallet className="w-12 h-12" />
-                    <p className="text-6xl font-bold">
+                    <p className="text-7xl font-bold">
                         Rs. {typeof userData?.credit_balance === 'number' ? userData.credit_balance.toFixed(2) : '0.00'}
                     </p>
                 </div>
