@@ -64,14 +64,25 @@ export default function RegisterPage() {
       const registerUser = async () => {
         if (!firestore) return;
         try {
-          if (message === 'registered') {
+          // Check if the card is already registered by checking the `users` collection.
+          // This is more reliable than the status message which might be stale.
+          const userCheckRef = doc(firestore, 'users', tagId);
+          const userDoc = await new Promise<any>((resolve) => {
+            const unsub = onSnapshot(userCheckRef, (doc) => {
+              unsub();
+              resolve(doc);
+            });
+          });
+
+
+          if (userDoc.exists()) {
             toast({
               variant: 'destructive',
               title: 'Card Already Registered',
               description: 'This card is already linked to an account.',
             });
             clearStatusDoc();
-            setIsFormSubmitted(false);
+            setIsFormSubmitted(false); // Go back to the form
             return;
           }
 
