@@ -55,7 +55,7 @@ export default function CheckoutPage() {
   }, [itemCount, status, router]);
 
   useEffect(() => {
-    if (status === 'pending_tap' && statusData?.tagId && statusData.tagId !== tagId) {
+    if (status === 'pending_tap' && statusData && statusData.tagId && statusData.tagId !== tagId) {
       setTagId(statusData.tagId);
       setStatus('card_detected');
     }
