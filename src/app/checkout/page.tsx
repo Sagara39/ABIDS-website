@@ -70,8 +70,8 @@ export default function CheckoutPage() {
   }, [status, router]);
 
   const handleConfirmPayment = async () => {
-    if (!tagId) {
-      setErrorMessage('No user card detected.');
+    if (!tagId || !userData) {
+      setErrorMessage('No valid user card detected. Please tap your card again.');
       setStatus('error');
       return;
     }
@@ -190,7 +190,7 @@ export default function CheckoutPage() {
              return (
                  <>
                     <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
-                        Back to Menu
+                        Cancel
                     </Button>
                     <Button onClick={() => { setStatus('pending_tap'); setTagId(null); }} className="w-full text-lg h-12">
                         Try Again
