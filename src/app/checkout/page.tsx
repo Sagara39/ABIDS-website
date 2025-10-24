@@ -172,16 +172,16 @@ export default function CheckoutPage() {
       case 'pending_tap':
       default:
         return (
-          <div className="text-center py-6 bg-green-500/10 rounded-lg border-2 border-dashed border-green-500/50">
+          <div className="text-center py-6 bg-accent/10 rounded-lg">
             <div className="flex justify-center mb-4">
               <div className="relative flex items-center justify-center w-32 h-32">
-                <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping"></div>
-                <div className="relative flex items-center justify-center w-24 h-24 bg-green-500/90 text-primary-foreground rounded-full shadow-lg">
+                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+                <div className="relative flex items-center justify-center w-24 h-24 bg-primary/90 text-primary-foreground rounded-full shadow-lg">
                   <Wifi className="w-16 h-16" />
                 </div>
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-green-600">Tap Your RFID Card to Pay</h3>
+            <h3 className="text-2xl font-bold text-primary">Tap Your RFID Card to Pay</h3>
             <p className="text-muted-foreground mt-1">Hold your card near the reader to proceed.</p>
           </div>
         );
@@ -247,7 +247,7 @@ export default function CheckoutPage() {
             </CardContent>
             <CardFooter className="flex-col items-stretch space-y-2 mt-auto pt-6">
                 <Separator/>
-                <div className="flex justify-between font-bold text-2xl">
+                <div className="flex justify-between font-bold text-4xl">
                     <span>Total</span>
                     <span>Rs.{total.toFixed(2)}</span>
                 </div>
