@@ -64,7 +64,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (status === 'success') {
       const timer = setTimeout(() => {
-        router.push('/');
+        handleFinish();
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -93,6 +93,11 @@ export default function CheckoutPage() {
   };
   
   const handleCancel = () => {
+    clearStatusDoc();
+    router.push('/');
+  }
+
+  const handleFinish = () => {
     clearStatusDoc();
     router.push('/');
   }
@@ -198,7 +203,7 @@ export default function CheckoutPage() {
             );
         case 'success':
             return (
-                <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                <Button onClick={handleFinish} variant="outline" className="w-full text-lg h-12">
                     Back to Menu
                 </Button>
             );
