@@ -15,7 +15,7 @@ interface StatusData {
 
 interface UserData {
     name: string;
-    balance: number;
+    credit_balance: number;
 }
 
 export default function BalancePage() {
@@ -94,7 +94,7 @@ export default function BalancePage() {
                 <div className="flex justify-center items-center gap-4 text-primary mb-4">
                     <Wallet className="w-12 h-12" />
                     <p className="text-6xl font-bold">
-                        Rs. {typeof userData?.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}
+                        Rs. {typeof userData?.credit_balance === 'number' ? userData.credit_balance.toFixed(2) : '0.00'}
                     </p>
                 </div>
                  <p className="text-muted-foreground mt-4">Your current account balance.</p>

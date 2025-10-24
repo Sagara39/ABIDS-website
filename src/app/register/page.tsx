@@ -57,7 +57,7 @@ export default function RegisterPage() {
             const userRef = doc(firestore, 'users', tagId);
             await setDoc(userRef, { 
                 ...formData,
-                balance: 0, // Initialize balance to 0
+                credit_balance: 0, // Initialize balance to 0
                 lastTransaction: serverTimestamp()
              });
             

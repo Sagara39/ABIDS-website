@@ -14,7 +14,7 @@
           "type": "string",
           "description": "The user's phone number."
         },
-        "balance": {
+        "credit_balance": {
           "type": "number",
           "description": "The user's current credit balance."
         },
@@ -27,7 +27,7 @@
       "required": [
         "name",
         "phoneNumber",
-        "balance"
+        "credit_balance"
       ]
     },
     "MenuItem": {
