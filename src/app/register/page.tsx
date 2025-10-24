@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { setDoc, doc, serverTimestamp, getDoc, onSnapshot } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { setDoc, doc, serverTimestamp, getDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { Wifi, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
@@ -26,7 +25,6 @@ type RegistrationStatus = 'form' | 'tapping' | 'submitting' | 'error' | 'success
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const firestore = useFirestore();
   const [activeField, setActiveField] = useState<'name' | 'phoneNumber' | null>('name');
   const [status, setStatus] = useState<RegistrationStatus>('form');
@@ -40,10 +38,7 @@ export default function RegisterPage() {
     },
   });
 
-  const statusDocRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'status', 'ui') : null),
-    [firestore]
-  );
+  const statusDocRef = doc(firestore, 'status', 'ui');
   
   const clearStatusDoc = () => {
     if (statusDocRef) {
@@ -57,8 +52,8 @@ export default function RegisterPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const waitForCardTap = (): Promise<string> => {
-    return new Promise((resolve) => {
-        if (!statusDocRef) return;
+    return new Promise((resolve, reject) => {
+        if (!statusDocRef) return reject('Firestore not available');
         const unsubscribe = onSnapshot(statusDocRef, (doc) => {
             const tagId = doc.data()?.tagId;
             if (tagId) {
@@ -72,11 +67,21 @@ export default function RegisterPage() {
   const onSubmit = async (values: RegistrationFormValues) => {
     if (!firestore) return;
     setStatus('tapping');
-    toast({ title: 'Please tap your card', description: 'Hold your card near the reader to link your account.'});
     
     try {
       const tagId = await waitForCardTap();
       setStatus('submitting');
+      
+      // Check if phone number already exists
+      const phoneQuery = query(collection(firestore, 'users'), where('phoneNumber', '==', values.phoneNumber));
+      const phoneSnapshot = await getDocs(phoneQuery);
+
+      if (!phoneSnapshot.empty) {
+        setErrorMessage('This phone number is already registered.');
+        setStatus('error');
+        clearStatusDoc();
+        return;
+      }
       
       const userCheckRef = doc(firestore, 'users', tagId);
       const userDoc = await getDoc(userCheckRef);
@@ -100,12 +105,8 @@ export default function RegisterPage() {
 
     } catch (error: any) {
         console.error('Failed to create user:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Registration Failed',
-            description: error.message || 'Could not save user data.',
-        });
-        setStatus('form');
+        setErrorMessage(error.message || 'Could not save user data.');
+        setStatus('error');
     }
   };
 
@@ -219,7 +220,7 @@ export default function RegisterPage() {
                         <XCircle className="w-32 h-32" />
                     </div>
                     <h3 className="text-2xl font-bold">{errorMessage}</h3>
-                    <p className="text-muted-foreground mt-1">Please use a different card or contact support.</p>
+                    <p className="text-muted-foreground mt-1">Please try again or contact support.</p>
                 </div>
             </CardContent>
             <CardFooter className="flex justify-center">
@@ -279,7 +280,7 @@ export default function RegisterPage() {
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
                         <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-                        <Button type="submit" className="text-lg h-12">Register</Button>
+                        <Button type="submit" className="text-lg h-12">Next: Tap Card</Button>
                     </CardFooter>
                 </form>
             </FormProvider>
