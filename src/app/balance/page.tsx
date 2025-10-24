@@ -155,15 +155,8 @@ export default function BalancePage() {
           >
             Back to Menu
           </Button>
-          <Link href="/register" passHref>
-            <Button className="w-full sm:w-auto text-lg h-12">
-              Register Now
-            </Button>
-          </Link>
         </CardFooter>
       </Card>
     </div>
   );
 }
-
-    

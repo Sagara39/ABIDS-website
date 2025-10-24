@@ -20,7 +20,12 @@ export default function Home() {
           </aside>
         </div>
       </div>
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-50 flex gap-4">
+        <Link href="/register">
+          <Button size="lg" className="h-14 text-lg shadow-2xl w-48">
+            Register Card
+          </Button>
+        </Link>
         <Link href="/balance">
           <Button size="lg" className="h-14 text-lg shadow-2xl w-48">
             Check Balance
