@@ -31,7 +31,6 @@ export default function BalancePage() {
   useEffect(() => {
     if (statusData && statusData.tagId) {
       setTagId(statusData.tagId);
-      setView('loading');
     }
   }, [statusData]);
 
@@ -49,7 +48,7 @@ export default function BalancePage() {
         setView('loading');
       } else if (userData) {
         setView('balance');
-      } else {
+      } else if (!isUserLoading && !userData) {
         setView('notFound');
       }
     }
