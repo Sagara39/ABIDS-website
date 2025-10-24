@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { Wifi, CheckCircle } from 'lucide-react';
 
@@ -67,12 +67,7 @@ export default function RegisterPage() {
           // Check if the card is already registered by checking the `users` collection.
           // This is more reliable than the status message which might be stale.
           const userCheckRef = doc(firestore, 'users', tagId);
-          const userDoc = await new Promise<any>((resolve) => {
-            const unsub = onSnapshot(userCheckRef, (doc) => {
-              unsub();
-              resolve(doc);
-            });
-          });
+          const userDoc = await getDoc(userCheckRef);
 
 
           if (userDoc.exists()) {
