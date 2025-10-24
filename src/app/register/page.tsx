@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { setDoc, doc, serverTimestamp, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp, getDoc, onSnapshot } from 'firebase/firestore';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import { Wifi, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
@@ -96,7 +96,6 @@ export default function RegisterPage() {
       
       await setDoc(statusDocRef, { message: 'registered' }, { merge: true });
       
-      toast({ title: 'Success!', description: 'Your card has been registered.' });
       setStatus('success');
 
     } catch (error: any) {
