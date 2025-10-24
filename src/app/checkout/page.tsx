@@ -157,9 +157,14 @@ export default function CheckoutPage() {
     switch(status) {
         case 'card_detected':
             return (
-                 <Button onClick={handleConfirmPayment} className="w-full text-lg h-12" disabled={isUserLoading || !userData}>
-                    {isUserLoading ? 'Verifying...' : `Confirm Payment for ${userData?.name}`}
-                </Button>
+                <>
+                    <Button onClick={() => router.push('/')} variant="outline" className="w-full text-lg h-12">
+                        Cancel
+                    </Button>
+                    <Button onClick={handleConfirmPayment} className="w-full text-lg h-12" disabled={isUserLoading || !userData}>
+                        {isUserLoading ? 'Verifying...' : `Confirm Payment for ${userData?.name}`}
+                    </Button>
+                </>
             );
         case 'success':
             return (
