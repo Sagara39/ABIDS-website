@@ -23,20 +23,16 @@ export default function Home() {
                   <CardTitle className="text-xl">More Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <Link href="/register" passHref legacyBehavior>
-                    <Button asChild size="lg" className="w-full h-14 text-lg">
-                      <a>
-                        <UserPlus className="mr-2" />
-                        Register Card
-                      </a>
+                  <Link href="/register" passHref>
+                    <Button size="lg" className="w-full h-14 text-lg">
+                      <UserPlus className="mr-2" />
+                      Register Card
                     </Button>
                   </Link>
-                  <Link href="/balance" passHref legacyBehavior>
-                    <Button asChild size="lg" className="w-full h-14 text-lg" variant="outline">
-                       <a>
-                        <Wallet className="mr-2" />
-                        Check Balance
-                      </a>
+                  <Link href="/balance" passHref>
+                    <Button size="lg" className="w-full h-14 text-lg" variant="outline">
+                      <Wallet className="mr-2" />
+                      Check Balance
                     </Button>
                   </Link>
                 </CardContent>
