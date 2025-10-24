@@ -22,12 +22,12 @@ export default function Home() {
       </div>
       <div className="fixed bottom-4 right-4 z-50 flex gap-4">
         <Link href="/register">
-          <Button size="lg" className="h-14 text-lg shadow-2xl w-48">
+          <Button size="lg" className="h-14 text-lg shadow-2xl">
             Register Card
           </Button>
         </Link>
         <Link href="/balance">
-          <Button size="lg" className="h-14 text-lg shadow-2xl w-48">
+          <Button size="lg" className="h-14 text-lg shadow-2xl">
             Check Balance
           </Button>
         </Link>
