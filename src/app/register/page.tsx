@@ -46,45 +46,48 @@ export default function RegisterPage() {
   const { data: statusData } = useDoc<{ message: string; tagId: string }>(statusDocRef);
 
   useEffect(() => {
-    // Prevent this effect from running if registration is already complete
-    if (isFormSubmitted && !registrationComplete && statusData && formData) {
+    if (isFormSubmitted && !registrationComplete && statusData?.tagId && formData) {
       const { message, tagId } = statusData;
 
-      if (message === 'unregistered' && tagId) {
-        const registerUser = async () => {
-          if (!firestore) return;
-          try {
-            const userRef = doc(firestore, 'users', tagId);
-            await setDoc(userRef, { 
-                ...formData,
-                credit_balance: 0, // Initialize balance to 0
-                lastTransaction: serverTimestamp()
-             });
-            
-            toast({ title: 'Success!', description: 'Your card has been registered.' });
-            setRegistrationComplete(true); // Set registration as complete
-          } catch (error: any) {
-            console.error('Failed to create user:', error);
+      const registerUser = async () => {
+        if (!firestore) return;
+        try {
+          if (message === 'registered') {
             toast({
               variant: 'destructive',
-              title: 'Registration Failed',
-              description: 'Could not save user data.',
+              title: 'Card Already Registered',
+              description: 'This card is already linked to an account.',
             });
-            setIsFormSubmitted(false); // Allow user to try again
+            await setDoc(statusDocRef, { tagId: null, message: '' }, { merge: true });
+            setIsFormSubmitted(false); // Allow another attempt
+            return;
           }
-        };
-        registerUser();
-      } else if (message === 'registered' && tagId) {
-        toast({
-          variant: 'destructive',
-          title: 'Card Already Registered',
-          description: 'This card is already linked to an account.',
-        });
-        // Reset to allow another attempt or different action
-        setTimeout(() => setIsFormSubmitted(false), 3000); 
-      }
+
+          const userRef = doc(firestore, 'users', tagId);
+          await setDoc(userRef, { 
+              ...formData,
+              credit_balance: 0,
+              lastTransaction: serverTimestamp()
+           });
+          
+          await setDoc(statusDocRef, { message: 'registered' }, { merge: true });
+          
+          toast({ title: 'Success!', description: 'Your card has been registered.' });
+          setRegistrationComplete(true);
+        } catch (error: any) {
+          console.error('Failed to create user:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Registration Failed',
+            description: 'Could not save user data.',
+          });
+          setIsFormSubmitted(false);
+        }
+      };
+      
+      registerUser();
     }
-  }, [statusData, isFormSubmitted, registrationComplete, formData, firestore, toast]);
+  }, [statusData, isFormSubmitted, registrationComplete, formData, firestore, toast, statusDocRef]);
 
 
   const onSubmit = (values: RegistrationFormValues) => {
@@ -95,7 +98,7 @@ export default function RegisterPage() {
 
   const handleFinish = async () => {
     if (firestore && statusDocRef) {
-        await setDoc(statusDocRef, { message: '', tagId: '' });
+        await setDoc(statusDocRef, { message: '', tagId: null }, { merge: true });
     }
     router.push('/');
   }

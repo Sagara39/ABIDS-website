@@ -25,14 +25,12 @@ export default function BalancePage() {
   const [view, setView] = useState<'prompt' | 'loading' | 'balance' | 'notFound'>('prompt');
   const [tagId, setTagId] = useState<string | null>(null);
 
-  // Hook 1: Listen to the status document
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
   const { data: statusData } = useDoc<StatusData>(statusDocRef);
 
-  // Hook 2: Listen to the user document, based on the tagId from status
   const userDocRef = useMemoFirebase(
     () => (firestore && tagId ? doc(firestore, 'users', tagId) : null),
     [firestore, tagId]
@@ -41,8 +39,6 @@ export default function BalancePage() {
 
   useEffect(() => {
     if (statusData && statusData.tagId) {
-      // A new card has been tapped.
-      // We set the tagId, which will trigger the second hook (userDocRef).
       if (statusData.tagId !== tagId) {
         setTagId(statusData.tagId);
         setView('loading');
@@ -51,7 +47,6 @@ export default function BalancePage() {
   }, [statusData, tagId]);
 
   useEffect(() => {
-    // This effect reacts to changes in the user data fetching.
     if (!tagId) {
       setView('prompt');
       return;
@@ -63,14 +58,26 @@ export default function BalancePage() {
     }
 
     if (userData) {
-      // User found, show balance
       setView('balance');
+      // Balance is shown, so we can clear the status for the next user.
+      if (firestore && statusDocRef) {
+        setDoc(statusDocRef, { tagId: null }, { merge: true });
+      }
     } else {
-      // No user data found for this tagId
       setView('notFound');
+      // Also clear status if card is not found.
+       if (firestore && statusDocRef) {
+        setDoc(statusDocRef, { tagId: null }, { merge: true });
+      }
     }
-  }, [tagId, userData, isUserLoading]);
+  }, [tagId, userData, isUserLoading, firestore, statusDocRef]);
 
+
+  const handleBackToMenu = () => {
+    setTagId(null);
+    setView('prompt');
+    router.push('/');
+  }
 
   const renderContent = () => {
     switch (view) {
@@ -126,16 +133,6 @@ export default function BalancePage() {
         );
     }
   };
-  
-  const handleBackToMenu = async () => {
-    // Clear status so the next visit to this page shows the prompt again
-    if (firestore && statusDocRef) {
-      await setDoc(statusDocRef, { tagId: null }, { merge: true });
-    }
-    setTagId(null);
-    setView('prompt');
-    router.push('/');
-  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center p-4 bg-muted/40">
