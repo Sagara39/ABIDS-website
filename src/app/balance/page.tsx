@@ -20,7 +20,7 @@ export default function BalancePage() {
   const router = useRouter();
   const firestore = useFirestore();
   const [view, setView] = useState<'prompt' | 'loading' | 'balance' | 'notFound'>('prompt');
-
+  
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
@@ -28,7 +28,23 @@ export default function BalancePage() {
   const { data: statusData, isLoading: isStatusLoading } = useDoc<StatusData>(statusDocRef);
 
   useEffect(() => {
-    if (isStatusLoading && view !== 'prompt') {
+    // When the component loads, if there's old data, don't show it.
+    // Wait for a new tap. The prompt view handles this.
+    if (view === 'prompt') {
+      if (isStatusLoading) {
+        setView('loading');
+      } else if (statusData?.tagId) {
+         if (statusData.message === 'registered' && statusData.userName && typeof statusData.credit_balance === 'number') {
+          setView('balance');
+        } else {
+          setView('notFound');
+        }
+      }
+      return;
+    }
+    
+    // If view is not 'prompt', then we react to changes.
+    if (isStatusLoading) {
       setView('loading');
       return;
     }
@@ -95,7 +111,7 @@ export default function BalancePage() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-primary">Tap Your RFID Card</h3>
-            <p className="text-muted-foreground mt-1">Hold your card near the reader.</p>
+            <p className="text-muted-foreground mt-1">Hold your card near the reader to check your balance.</p>
           </div>
         );
     }
