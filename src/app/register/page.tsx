@@ -14,6 +14,7 @@ import { useAuth, useFirestore, useUser } from '@/firebase';
 import { setDoc, doc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import VirtualKeyboard from '@/components/VirtualKeyboard';
+import { Wifi } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -27,6 +28,7 @@ export default function RegisterPage() {
   const auth = useAuth();
   const { user } = useUser();
   const [activeField, setActiveField] = useState<'name' | 'phoneNumber' | null>('name');
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,7 +59,7 @@ export default function RegisterPage() {
       await setDoc(userRef, values, { merge: true });
 
       toast({ title: 'Success', description: 'Your information has been saved.' });
-      router.push('/');
+      setIsFormSubmitted(true);
     } catch (error: any) {
       console.error('Registration failed:', error);
       toast({
@@ -92,67 +94,101 @@ export default function RegisterPage() {
     <div className="flex flex-col h-[calc(100vh-4rem)]">
         <div className="flex-grow flex items-center justify-center p-4">
             <Card className="w-full max-w-lg shadow-2xl">
-                <CardHeader>
-                    <CardTitle className="text-2xl">Register Your Account</CardTitle>
-                    <CardDescription>Enter your name and phone number to get started.</CardDescription>
-                </CardHeader>
-                <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                        <CardContent className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="John Doe"
-                                                {...field}
-                                                onFocus={() => setActiveField('name')}
-                                                className="text-lg p-4"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="phoneNumber"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Phone Number</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="0123456789"
-                                                {...field}
-                                                onFocus={() => setActiveField('phoneNumber')}
-                                                className="text-lg p-4"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                        <CardFooter className="flex justify-end gap-2">
-                             <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-                            <Button type="submit" className="text-lg h-12">Register</Button>
-                        </CardFooter>
-                    </form>
-                </FormProvider>
+              {!isFormSubmitted ? (
+                <>
+                  <CardHeader>
+                      <CardTitle className="text-2xl">Register Your Account</CardTitle>
+                      <CardDescription>Enter your name and phone number to get started.</CardDescription>
+                  </CardHeader>
+                  <FormProvider {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                          <CardContent className="space-y-4">
+                              <FormField
+                                  control={form.control}
+                                  name="name"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Name</FormLabel>
+                                          <FormControl>
+                                              <Input
+                                                  placeholder="John Doe"
+                                                  {...field}
+                                                  onFocus={() => setActiveField('name')}
+                                                  className="text-lg p-4"
+                                              />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <FormField
+                                  control={form.control}
+                                  name="phoneNumber"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormLabel>Phone Number</FormLabel>
+                                          <FormControl>
+                                              <Input
+                                                  placeholder="0123456789"
+                                                  {...field}
+                                                  onFocus={() => setActiveField('phoneNumber')}
+                                                  className="text-lg p-4"
+                                              />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                          </CardContent>
+                          <CardFooter className="flex justify-end gap-2">
+                              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+                              <Button type="submit" className="text-lg h-12">Register</Button>
+                          </CardFooter>
+                      </form>
+                  </FormProvider>
+                </>
+              ) : (
+                <>
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-2xl">Registration Complete</CardTitle>
+                    <CardDescription>Now, link your card to finalize your account.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-6 bg-accent/10 rounded-lg">
+                      <div className="flex justify-center mb-4">
+                        <div className="relative flex items-center justify-center w-40 h-40">
+                          <div className="absolute inset-0 bg-primary/20 rounded-full animate-pulse"></div>
+                          <div className="relative flex items-center justify-center w-32 h-32 bg-primary/90 text-primary-foreground rounded-full shadow-lg">
+                            <Wifi className="w-20 h-20" />
+                          </div>
+                        </div>
+                      </div>
+                      <h3 className="text-2xl font-bold text-primary">
+                        Tap Your RFID Card
+                      </h3>
+                      <p className="text-muted-foreground mt-1">Hold your card near the reader to link your account.</p>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-center">
+                      <Button onClick={() => router.push('/')} className="text-lg h-12">
+                          Finish
+                      </Button>
+                  </CardFooter>
+                </>
+              )}
             </Card>
         </div>
 
-        <div className="sticky bottom-0 left-0 right-0 w-full bg-muted p-2 shadow-inner">
-             <VirtualKeyboard
-                onKeyPress={handleKeyPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-                isNumeric={activeField === 'phoneNumber'}
-            />
-        </div>
+        {!isFormSubmitted && (
+          <div className="sticky bottom-0 left-0 right-0 w-full bg-muted p-2 shadow-inner">
+              <VirtualKeyboard
+                  onKeyPress={handleKeyPress}
+                  onBackspace={handleBackspace}
+                  onClear={handleClear}
+                  isNumeric={activeField === 'phoneNumber'}
+              />
+          </div>
+        )}
     </div>
   );
 }
