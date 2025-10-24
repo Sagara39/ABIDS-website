@@ -50,7 +50,7 @@ export default function RegisterPage() {
 
       if (message === 'unregistered' && tagId) {
         const registerUser = async () => {
-          if (!firestore) return;
+          if (!firestore || !statusDocRef) return;
           try {
             const userRef = doc(firestore, 'users', tagId);
             await setDoc(userRef, { 
@@ -58,6 +58,10 @@ export default function RegisterPage() {
                 balance: 0, // Initialize balance to 0
                 lastTransaction: serverTimestamp()
              });
+            
+            // Clear the status document after registration
+            await setDoc(statusDocRef, { message: '', tagId: '' });
+
             toast({ title: 'Success!', description: 'Your card has been registered.' });
             router.push('/');
           } catch (error: any) {
@@ -81,7 +85,7 @@ export default function RegisterPage() {
         setTimeout(() => setIsFormSubmitted(false), 3000); 
       }
     }
-  }, [statusData, isFormSubmitted, formData, firestore, toast, router]);
+  }, [statusData, isFormSubmitted, formData, firestore, toast, router, statusDocRef]);
 
 
   const onSubmit = (values: RegistrationFormValues) => {
