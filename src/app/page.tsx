@@ -3,6 +3,8 @@ import PageHeader from "@/components/PageHeader";
 import Menu from "@/components/Menu";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserPlus, Wallet } from "lucide-react";
 
 export default function Home() {
   return (
@@ -14,23 +16,34 @@ export default function Home() {
             <Menu />
           </main>
           <aside className="md:col-span-1">
-            <div className="sticky top-24">
+            <div className="sticky top-24 flex flex-col gap-8">
               <Cart />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">More Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <Link href="/register" passHref legacyBehavior>
+                    <Button asChild size="lg" className="w-full h-14 text-lg">
+                      <a>
+                        <UserPlus className="mr-2" />
+                        Register Card
+                      </a>
+                    </Button>
+                  </Link>
+                  <Link href="/balance" passHref legacyBehavior>
+                    <Button asChild size="lg" className="w-full h-14 text-lg" variant="outline">
+                       <a>
+                        <Wallet className="mr-2" />
+                        Check Balance
+                      </a>
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
             </div>
           </aside>
         </div>
-      </div>
-      <div className="fixed bottom-4 right-4 z-50 flex gap-4">
-        <Link href="/register">
-          <Button size="lg" className="h-14 text-lg shadow-2xl">
-            Register Card
-          </Button>
-        </Link>
-        <Link href="/balance">
-          <Button size="lg" className="h-14 text-lg shadow-2xl">
-            Check Balance
-          </Button>
-        </Link>
       </div>
     </>
   );
