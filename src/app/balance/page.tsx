@@ -9,50 +9,42 @@ import Link from 'next/link';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-interface UserProfile {
-  name: string;
-  balance: number;
+interface StatusData {
+  message: string;
+  tagId: string;
+  userName?: string;
+  credit_balance?: number;
 }
 
 export default function BalancePage() {
   const router = useRouter();
   const firestore = useFirestore();
-  const [tagId, setTagId] = useState<string | null>(null);
   const [view, setView] = useState<'prompt' | 'loading' | 'balance' | 'notFound'>('prompt');
-  
-  // Listener for the RFID/status document
+
   const statusDocRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'status', 'ui') : null),
     [firestore]
   );
-  const { data: statusData } = useDoc<{ message: string; tagId: string }>(statusDocRef);
+  const { data: statusData, isLoading: isStatusLoading } = useDoc<StatusData>(statusDocRef);
 
-  // Effect to handle RFID tap
   useEffect(() => {
-    if (statusData && statusData.tagId) {
-      setTagId(statusData.tagId);
+    if (isStatusLoading && view !== 'prompt') {
+      setView('loading');
+      return;
     }
-  }, [statusData]);
 
-  // Listener for the user profile, dependent on tagId
-  const userDocRef = useMemoFirebase(
-    () => (firestore && tagId ? doc(firestore, 'users', tagId) : null),
-    [firestore, tagId]
-  );
-  const { data: userData, isLoading: isUserLoading } = useDoc<UserProfile>(userDocRef);
-
-  // Effect to handle user data fetching result
-  useEffect(() => {
-    if (tagId) { // Only proceed if a tag has been scanned
-      if (isUserLoading) {
-        setView('loading');
-      } else if (userData) {
-        setView('balance');
-      } else if (!isUserLoading && !userData) {
-        setView('notFound');
-      }
+    if (!statusData || !statusData.tagId) {
+      setView('prompt');
+      return;
     }
-  }, [tagId, userData, isUserLoading]);
+
+    if (statusData.message === 'registered' && statusData.userName && typeof statusData.credit_balance === 'number') {
+      setView('balance');
+    } else {
+      setView('notFound');
+    }
+  }, [statusData, isStatusLoading, view]);
+
 
   const renderContent = () => {
     switch (view) {
@@ -71,12 +63,12 @@ export default function BalancePage() {
             <div className="text-center py-6">
                 <div className="flex justify-center items-center gap-4 mb-2">
                     <UserIcon className="w-8 h-8 text-muted-foreground"/>
-                    <p className="text-2xl font-semibold">{userData?.name}</p>
+                    <p className="text-2xl font-semibold">{statusData?.userName}</p>
                 </div>
                 <div className="flex justify-center items-center gap-4 text-primary mb-4">
                     <Wallet className="w-12 h-12" />
                     <p className="text-6xl font-bold">
-                        Rs. {typeof userData?.balance === 'number' ? userData.balance.toFixed(2) : '0.00'}
+                        Rs. {typeof statusData?.credit_balance === 'number' ? statusData.credit_balance.toFixed(2) : '0.00'}
                     </p>
                 </div>
                  <p className="text-muted-foreground mt-4">Your current account balance.</p>
