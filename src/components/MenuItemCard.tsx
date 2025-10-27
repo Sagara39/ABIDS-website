@@ -16,7 +16,7 @@ import { PlusCircle } from "lucide-react";
 
 export default function MenuItemCard({ item }: { item: MenuItem }) {
   const { addToCart } = useCart();
-  const imageUrl = item.imageUrl || "/placeholder.png";
+  const imageUrl = item.imageUrl || "https://placehold.co/600x400?text=Menu+Item";
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">

@@ -10,7 +10,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 export default function CartItemComponent({ item }: { item: CartItem }) {
   const { updateQuantity, removeFromCart } = useCart();
   const localImage = PlaceHolderImages.find(img => img.name.toLowerCase() === item.name.toLowerCase());
-  const imageUrl = localImage?.imageUrl || "/placeholder.png";
+  const imageUrl = localImage?.imageUrl || "https://placehold.co/64x64?text=Item";
   const imageHint = localImage?.imageHint || "placeholder";
 
 

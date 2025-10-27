@@ -21,7 +21,7 @@ export default function Menu() {
     const localImage = PlaceHolderImages.find(img => img.name.toLowerCase() === item.name.toLowerCase());
     return {
       ...item,
-      imageUrl: localImage?.imageUrl || '/placeholder.png',
+    imageUrl: localImage?.imageUrl || 'https://placehold.co/600x400?text=Menu+Item',
       imageHint: localImage?.imageHint || 'placeholder',
     };
   });
