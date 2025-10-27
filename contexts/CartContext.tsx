@@ -109,11 +109,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const order: Omit<Order, 'id'> = {
+      userId: user.uid,
       orderDate: serverTimestamp(),
       totalAmount: total,
       itemCount: itemCount,
       orderItems: cartItems.map(item => ({
         menuItemId: item.id,
+        name: item.name,
         quantity: item.quantity,
         price: item.price,
       })),
