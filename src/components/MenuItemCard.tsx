@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 
-export default function MenuItemCard({ item }: { item: MenuItem }) {
+export default function MenuItemCard({ item, priority = false }: { item: MenuItem, priority?: boolean }) {
   const { addToCart } = useCart();
   const imageUrl = item.imageUrl || "https://placehold.co/600x400?text=Menu+Item";
 
@@ -28,6 +28,7 @@ export default function MenuItemCard({ item }: { item: MenuItem }) {
             fill
             className="object-cover"
             data-ai-hint={item.imageHint}
+            priority={priority}
           />
         </div>
       </CardHeader>
